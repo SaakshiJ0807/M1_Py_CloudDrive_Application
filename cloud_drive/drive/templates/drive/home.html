@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid" style="min-height: 100vh; background-color: #fdfdfede;">
+    <div class="row justify-content-center align-items-center" style="min-height: 100vh;">
+        <div class="col-12 col-md-8 col-lg-6 p-4 rounded shadow bg-white text-center">
+            {% if user.is_authenticated %}
+                <h2 class="mb-3 font-weight-bold text-dark">Salut, {{ user.username }} !</h2>
+                <p class="text-muted">Vous êtes connecté.</p>
+
+                <!-- Barre de progression de stockage utilisé -->
+                <h3 class="mt-4 text-secondary" style="font-size: 1.5rem;">Stockage Utilisé</h3>
+                <div class="progress" style="height: 20px;">
+                    <div 
+                        class="progress-bar" 
+                        role="progressbar" 
+                        aria-valuenow="{{ percentage_used }}" 
+                        aria-valuemin="0" 
+                        aria-valuemax="100">
+                        <span class="sr-only">{{ percentage_used|floatformat:"1" }}% Complete</span>
+                    </div>
+                </div>
+                <p class="mt-2 text-secondary">
+                    <strong>{{ used_space|floatformat:"2" }} MB</strong> / 
+                    <strong>{{ total_space|floatformat:"2" }} MB</strong> utilisés
+                </p>
+            {% else %}
+                <h2 class="mb-3 font-weight-bold text-dark">Bienvenue !</h2>
+                <p class="text-muted">Connectez-vous ou créez un compte pour commencer.</p>
+                <a href="{% url 'login' %}" class="btn btn-primary btn-lg me-2 mb-2">Se connecter</a>
+                <a href="{% url 'signup' %}" class="btn btn-outline-secondary btn-lg mb-2">Créer un compte</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Styles personnalisés -->
+<style>
+    body {
+        background-color: #d5edf1;
+    }
+    .bg-white {
+        background-color: white;
+    }
+    .rounded {
+        border-radius: 15px;
+    }
+    .shadow {
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .font-weight-bold {
+        font-weight: 700;
+    }
+    .text-dark {
+        color: #333;
+    }
+    .text-secondary {
+        color: #555;
+    }
+    .progress {
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .progress-bar {
+        background-color: #007bff;
+    }
+</style>
+{% endblock %}
+

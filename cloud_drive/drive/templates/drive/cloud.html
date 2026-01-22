@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" >
+    <h2>Files and Folders</h2>
+    
+    <!-- Chemin complet du répertoire -->
+    <p class="text-muted">Chemin : /user_files/{{ request.user.username }}{% if current_path %}/{{ current_path }}{% endif %}</p>
+
+
+    <div class="container">
+        <!-- Bouton "Nouveau" -->
+        <div class="mb-3">
+            <button type="button" class="btn btn-outline-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#newModal">
+                <i class="bi bi-plus"></i> Nouveau
+            </button>
+        </div>
+
+
+        <ul class="list-group mt-4">
+            {% for item in content %}
+                <li class="list-group-item d-flex align-items-center justify-content-between position-relative">
+                    <div class="d-flex align-items-center">
+                        <i class="bi {{ item.icon }} me-3" style="font-size: 1.5rem;"></i>
+                        <div>
+                            {% if item.is_dir %}
+                                <!-- Lien vers le sous-dossier avec encodage pour les caractères spéciaux -->
+                                <a href="?path={{ current_path }}/{{ item.name|urlencode }}">
+                                    <strong>{{ item.name }}</strong>
+                                </a>
+                            {% else %}
+                                <strong>{{ item.name }}</strong>
+                            {% endif %}
+                            <p class="text-muted mb-0" style="font-size: 0.9rem;">
+                                {{ item.modified }} | {{ item.type }} | {{ item.size }}
+                            </p>
+                        </div>
+                    </div>
+
+                <!-- Menu contextuel pour les actions, avec icônes et taille agrandie -->
+                <div class="d-flex align-items-center">
+                    
+                    <!-- Bouton de menu déroulant -->
+                    <div class="dropdown">
+                        <button class="btn btn-link p-0 mx-1 dropdown-toggle" type="button" id="dropdownMenuButton{{ forloop.counter }}" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-three-dots" style="font-size: 1.2rem;"></i>
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ forloop.counter }}">
+                            <!-- Bouton de suppression -->
+                            <li>
+                                <button class="dropdown-item" type="button" title="Supprimer" onclick="deleteFile('{{ item.file_path }}')">
+                                    <i class="bi bi-trash" style="font-size: 1.2rem; color: red;"></i> Supprimer
+                                </button>
+                            </li>
+                            <!-- Bouton de duplication -->
+                            <li>
+                                <button class="dropdown-item" type="button" title="Dupliquer" onclick="duplicateFile('{{ item.file_path }}')">
+                                    <i class="bi bi-files" style="font-size: 1.2rem; color: blue;"></i> Dupliquer
+                                </button>
+                            </li>
+                            <!-- Bouton de renommage -->
+                            <li>
+                                <button class="dropdown-item" type="button" title="Renommer" onclick="openRenameModal('{{ item.name }}', '{{ item.file_path }}')">
+                                    <i class="bi bi-pencil" style="font-size: 1.2rem; color: green;"></i> Renommer
+                                </button>
+                            </li>
+                            <!-- Bouton de prévisualisation -->
+                            {% if not item.is_dir %}
+                            <li>
+                                <button class="dropdown-item" type="button" title="Prévisualiser" onclick="previewFile('{{ item.file_path }}')">
+                                    <i class="bi bi-eye" style="font-size: 1.2rem; color: orange;"></i> Prévisualiser
+                                </button>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    </form>
+                </div>
+                
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<div class="modal fade" id="renameModal" tabindex="-1" aria-labelledby="renameModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="renameForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="renameModalLabel">Renommer le fichier</h5>
+                    <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Champ pour stocker le chemin original du fichier -->
+                    <input type="hidden" id="originalName" name="original_name">
+                    
+                    <!-- Label et champ pour le nouveau nom -->
+                    <label for="newName" class="form-label">Nouveau nom :</label>
+                    <input type="text" class="form-control" id="newName" name="new_name" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Renommer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Modale "Nouveau" pour créer un dossier ou uploader un fichier -->
+<div class="modal fade" id="newModal" tabindex="-1" aria-labelledby="newModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newModalLabel">Nouveau</h5>
+                <button type="button" class="btn btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulaire pour créer un dossier -->
+                <form id="createFolderForm" method="post" action="{% url 'create_folder' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="current_path" value="{{ current_path }}">
+                    <div class="mb-3">
+                        <label for="folderName" class="form-label">Nom du dossier :</label>
+                        <input type="text" class="form-control" id="folderName" name="folder_name" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Créer un dossier</button>
+                </form>
+                
+                <hr>
+
+                <!-- Formulaire pour uploader un fichier -->
+                <form id="uploadFileForm" method="post" action="{% url 'upload_file' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="current_path" value="{{ current_path }}">
+                    <div class="mb-3">
+                        <label for="fileUpload" class="form-label">Uploader un fichier :</label>
+                        <input type="file" class="form-control" id="fileUpload" name="file" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Uploader</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+<!-- Ajoutez le style pour le fond de couleur -->
+<style>
+    body {
+        background-color: #d5edf1; /* Choisissez la couleur de fond souhaitée */
+    }
+</style>
+
+<script>
+// Ouvrir la modale de renommage
+function openRenameModal(filename, filePath) {
+  
+
+    const extIndex = filename.lastIndexOf('.');
+    const baseName = extIndex > 0 ? filename.substring(0, extIndex) : filename;
+    const extension = extIndex > 0 ? filename.substring(extIndex) : '';
+
+    // Initialise les champs avec les valeurs nécessaires
+    document.getElementById('originalName').value = filePath;
+    document.getElementById('newName').value = baseName;
+    document.getElementById('newName').setAttribute('data-extension', extension);
+
+    console.log("Filename:", filename);
+    console.log("File Path:", filePath);
+    // Affiche la modale de renommage
+    const renameModal = new bootstrap.Modal(document.getElementById('renameModal'));
+    renameModal.show();
+}
+
+// Gestionnaire de soumission du formulaire pour envoyer les données au serveur
+document.getElementById('renameForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+
+    const originalName = document.getElementById('originalName').value;
+    const baseName = document.getElementById('newName').value;
+    const extension = document.getElementById('newName').getAttribute('data-extension');
+    const newName = baseName + extension;
+
+    if (!originalName) {
+        alert("Nom du fichier original non spécifié.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("original_name", originalName);
+    formData.append("new_name", newName);
+
+    fetch("{% url 'rename_file' 'file_path_placeholder' %}".replace('file_path_placeholder', encodeURIComponent(originalName)), {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert(data.error);
+    })
+    .catch(error => {
+        console.error("Erreur lors du renommage :", error);
+        alert("Une erreur est survenue lors du renommage.");
+    });
+});
+
+
+
+function duplicateFile(filePath) {
+    if (!filePath) {
+        alert("Chemin de fichier non spécifié.");
+        return;
+    }
+    
+    // Assurez-vous qu'il n'y a pas de `//` accidentel dans l'URL
+    const duplicateUrl = `{% url 'duplicate_file' 'file_path' %}`.replace('file_path', encodeURIComponent(filePath).replace(/%2F/g, "/"));
+
+    fetch(duplicateUrl, {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();  // Recharge la page en cas de succès
+        } else {
+            alert(data.error);  // Affiche l'erreur renvoyée par le serveur
+        }
+    })
+    .catch(error => {
+        console.error("Erreur lors de la duplication :", error);
+        alert("Une erreur est survenue lors de la duplication.");
+    });
+}
+
+function deleteFile(filePath) {
+    if (!filePath) {
+        alert("Chemin du fichier à supprimer est non spécifié.");
+        return;
+    }
+    
+    const deleteUrl = `{% url 'delete_file' 'file_path' %}`.replace('file_path', encodeURIComponent(filePath));
+
+    fetch(deleteUrl, {
+        method: "POST",
+        headers: { "X-CSRFToken": "{{ csrf_token }}" }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();  // Recharge la page en cas de succès
+        } else {
+            alert(data.error);  // Affiche l'erreur renvoyée par le serveur
+        }
+    })
+    .catch(error => {
+        console.error("Erreur lors de la suppression :", error);
+        alert("Une erreur est survenue lors de la suppression.");
+    });
+}
+
+function previewFile(filePath) {
+    // Ouvre une nouvelle fenêtre ou une modal pour afficher le fichier
+    // Exemple : Fenêtre modale ou redirection vers une URL de prévisualisation
+    window.open(`/preview/${encodeURIComponent(filePath)}`, '_blank');
+}
+</script>
+{% endblock %}

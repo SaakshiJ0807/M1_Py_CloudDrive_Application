@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: 80vh;">
+    <div class="container p-4 shadow-lg rounded col-md-6 col-lg-4 bg-white">
+        <h2 class="text-center mb-4">Créer un compte</h2>
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Champ Username avec Tooltip -->
+            {{ form.username.label_tag }}
+            <input type="text" name="username" class="form-control" 
+                   data-bs-toggle="tooltip" title="{{ form.username.help_text }}" 
+                   value="{{ form.username.value|default:'' }}">
+
+            <br> 
+            <!-- Champ Email avec Tooltip -->
+            {{ form.email.label_tag }}
+            <input type="email" name="email" class="form-control" 
+                   data-bs-toggle="tooltip" title="Requis. Entrez une adresse email valide." 
+                   value="{{ form.email.value|default:'' }}">
+            
+            <br>
+
+            <!-- Champ Password1 avec Tooltip -->
+            {{ form.password1.label_tag }}
+            <input type="password" name="password1" class="form-control" 
+                   data-bs-toggle="tooltip" title="{{ form.password1.help_text }}">
+
+            <br>
+
+            <!-- Champ Password2 avec Tooltip -->
+            {{ form.password2.label_tag }}
+            <input type="password" name="password2" class="form-control" 
+                   data-bs-toggle="tooltip" title="{{ form.password2.help_text }}">
+
+            <br>
+
+            <button type="submit" class="btn btn-primary w-100 mt-3">S'inscrire</button>
+        </form>
+        <p class="text-center mt-3">Déjà inscrit ? <a href="{% url 'login' %}">Se connecter</a></p>
+    </div>
+</div>
+{% endblock %}
